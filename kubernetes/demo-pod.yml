@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k8s-demo-pod
+  labels:
+    app: k8s-demo-pod
+spec:
+  containers:
+    - name: k8s-demo-container
+      image: registry.localhost.com:5000/k8s/demo-api-dev
+      ports:
+        - containerPort: 80
+        - containerPort: 443
+  imagePullSecrets:
+    - name: regcred
+  # nodeSelector:
+  #   location: localhost

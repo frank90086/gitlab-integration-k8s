@@ -1,0 +1,66 @@
+version: "3.7"
+services:
+  web:
+    container_name: gitlab
+    image: 'gitlab/gitlab-ee:latest'
+    hostname: gitlab.localhost.com
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab.localhost.com'
+    ports:
+      - 8080:80
+      - 8433:443
+      - 8022:22
+    volumes:
+      - ../vol/gitlab/config:/etc/gitlab
+      - ../vol/gitlab/logs:/var/log/gitlab
+      - ../vol/gitlab/data:/var/opt/gitlab
+    shm_size: '256m'
+    networks:
+      - default
+      - minikube
+  runner:
+    container_name: gitlab-runner
+    image: gitlab/gitlab-runner:latest
+    ports:
+      - 8093:8093
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../vol/gitlab-runner/config:/etc/gitlab-runner
+  registry:
+    container_name: registry
+    image: registry:2.7
+    hostname: registry.localhost.com
+    ports:
+      - 5000:5000
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+    volumes:
+      - ../vol/registry/data:/var/lib/registry
+      - ../self_certificates:/certs
+      - ../vol/registry/auth:/auth
+      - ../vol/registry/config:/etc/docker/registry
+    networks:
+      - default
+      - minikube
+  ui:
+    container_name: registry-ui
+    image: joxit/docker-registry-ui:latest
+    ports:
+      - 5555:80
+    environment:
+      REGISTRY_TITLE: Private Docker Registry
+      NGINX_PROXY_PASS_URL: http://registry.localhost.com:5000
+      SINGLE_REGISTRY: true
+      DELETE_IMAGES: true
+    depends_on:
+        - registry
+networks:
+  default:
+    external:
+      name: dev
+  minikube:
+    external:
+      name: minikube

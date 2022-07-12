@@ -1,0 +1,241 @@
+stages:
+  - build
+  - pack
+  - deploy
+
+variables:
+  PROJECT_CODE: "demo"
+  GIT_STRATEGY: none
+
+build:Demo.API:
+  extends:
+    - .build-source
+pack:Demo.API:
+  dependencies: [ "build:Demo.API" ]
+  extends:
+    - .pack-image
+deploy:Demo.API:
+  dependencies: [ "pack:Demo.API" ]
+  extends:
+    - .deploy-dev
+
+####################################################################################################
+# Process: Set Environment > Build > Package > Deploy
+# Set Environment
+.setter-variables:
+  artifacts:
+    paths:
+      - .ci-env
+  before_script:
+    - CONFIGURATION="Debug"
+    - DOTNET_ENVIRONMENT="SIT"
+    - IMAGE_ENVIRONMENT="$CI_COMMIT_BRANCH"
+    - PRIVATE_REGISTRY_HOST="localhost:5000"
+    - PRIVATE_REGISTRY="http://$PRIVATE_REGISTRY_HOST"
+    - if [ "$CI_COMMIT_BRANCH" == "main" ]; then
+    -   DOTNET_ENVIRONMENT="Production"
+    -   CONFIGURATION="Release"
+    -   IMAGE_ENVIRONMENT=""
+    - fi
+    - if [ "$CI_COMMIT_BRANCH" == "dev" ]; then
+    -   DOTNET_ENVIRONMENT="Development"
+    - fi
+    - |
+      cat > .ci-env << EOF
+      # ENVIRONMENTS
+      DOTNET_ENVIRONMENT="$DOTNET_ENVIRONMENT"
+      CONFIGURATION="$CONFIGURATION"
+      IMAGE_ENVIRONMENT="$IMAGE_ENVIRONMENT"
+      # ISSUE_TITLE="$ISSUE_TITLE"
+      PRIVATE_REGISTRY_HOST="$PRIVATE_REGISTRY_HOST"
+      PRIVATE_REGISTRY="$PRIVATE_REGISTRY"
+      EOF
+    - cat .ci-env
+
+# Build: Build Dotnet Project
+.build-source:
+  stage: build
+  variables:
+    GIT_STRATEGY: clone
+  image: mcr.microsoft.com/dotnet/sdk:6.0-alpine
+  tags:
+    - docker
+  allow_failure: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^master|sit|dev$/im'
+      when: on_success
+    - if: '$CI_COMMIT_MESSAGE =~ /\[SKIP-CI\]/im'
+      when: manual
+  extends:
+    - .setter-variables
+  artifacts:
+    paths:
+      - .ci-env
+      - app
+  script:
+    - source .ci-env
+    - apk update
+    - apk add --no-cache git netcat-openbsd
+    - git config --global http.sslVerify false
+    - git config --global credential.helper store
+    - echo "http://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.localhost.com" > ~/.git-credentials
+    - SLN="${CI_JOB_NAME:6}.sln"
+    - dotnet new sln -n ${CI_JOB_NAME:6}
+    - dotnet sln add ./src/**/*.csproj
+    - dotnet restore $SLN --no-cache
+    - dotnet publish $SLN -c $CONFIGURATION --version-suffix $CI_COMMIT_BRANCH-$CI_COMMIT_SHORT_SHA --output ./app
+
+# Package: Docker Image & Publish To Docker Registry
+.pack-image:
+  stage: pack
+  image: docker
+  # # Using Docker-In-Docker
+  # services:
+  #   - name: docker:dind
+  #     alias: docker
+  #     command: ["--insecure-registry", "registry.localhost.com:5000"]
+  # variables:
+  #   DOCKER_HOST: tcp://docker:2375
+  #   DOCKER_DRIVER: overlay2
+  #   DOCKER_TLS_CERTDIR: ""
+  tags:
+    - docker
+  allow_failure: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^master|sit|dev$/im'
+      when: on_success
+    - if: '$CI_COMMIT_MESSAGE =~ /\[SKIP-CI\]/im'
+      when: manual
+  artifacts:
+    paths:
+      - .ci-env
+  before_script:
+    - source .ci-env
+    - docker logout
+    - echo "${REGISTRY_PASSWORD}" | docker login $PRIVATE_REGISTRY -u ${REGISTRY_USER} --password-stdin
+  script:
+    - source .ci-env
+    - TMP_NAME=${CI_JOB_NAME:5}
+    - IMAGE_NAME=$(echo "k8s/${TMP_NAME//./-}")
+    - if [ ! -z "$IMAGE_ENVIRONMENT" ]; then
+    -   IMAGE_NAME="${IMAGE_NAME}-${IMAGE_ENVIRONMENT}"
+    - fi
+    - IMAGE_NAME=$(echo $IMAGE_NAME | tr '[:upper:]' '[:lower:]')
+    - echo "IMAGE_NAME=\"$IMAGE_NAME\"" >> ./.ci-env
+    - |
+      cat > dockerfile << EOF
+      FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine
+      ARG DOTNET_ENVIRONMENT=Production
+      ENV ASPNETCORE_ENVIRONMENT=\$DOTNET_ENVIRONMENT
+      WORKDIR /app
+      COPY ./app /app
+      VOLUME [ "log" ]
+      EXPOSE 80 443
+      ENTRYPOINT dotnet ${CI_JOB_NAME:5}.dll
+      EOF
+    - docker build --no-cache --build-arg DOTNET_ENVIRONMENT=$DOTNET_ENVIRONMENT -t $IMAGE_NAME:$CI_COMMIT_SHORT_SHA .
+    - docker tag $IMAGE_NAME:$CI_COMMIT_SHORT_SHA $PRIVATE_REGISTRY_HOST/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker push $PRIVATE_REGISTRY_HOST/$IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker rmi -f $(docker images -q --filter reference="$IMAGE_NAME")
+    - echo "IMAGE_NAME=$IMAGE_NAME:$CI_COMMIT_SHORT_SHA" >> .ci-env
+
+# Deploy: Create Deployment & Service On K8S Cluster
+.deploy-dev:
+  stage: deploy
+  tags:
+    - kubernetes
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: ['']
+  variables:
+    KUBECTL_VERSION: v1.24.1
+  allow_failure: false
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^dev$/im'
+      when: on_success
+    - if: '$CI_COMMIT_MESSAGE =~ /\[SKIP-CI\]/im'
+      when: manual
+  script:
+    - source .ci-env
+    - JOB_NAME=$(echo "${CI_JOB_NAME:7}" | tr '[:upper:]' '[:lower:]')
+    - JOB_NAME=$(echo ${JOB_NAME//./-})
+    # set deployment
+    - |
+      cat > deployment.yml << EOF
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: ${JOB_NAME}-deployment
+      spec:
+        replicas: 3
+        selector:
+          matchLabels:
+            app: ${JOB_NAME}-pod
+        template:
+          metadata:
+            labels:
+              app: ${JOB_NAME}-pod
+          spec:
+            containers:
+              - name: ${JOB_NAME}-container
+                image: registry.localhost.com:5000/$IMAGE_NAME
+                ports:
+                  - containerPort: 80
+                  - containerPort: 443
+                livenessProbe:
+                  httpGet:
+                    path: /
+                    port: health
+                  initialDelaySeconds: 10
+                  periodSeconds: 30
+                  timeoutSeconds: 30
+                  successThreshold: 1
+                  failureThreshold: 3
+      EOF
+    # set service
+    - |
+      cat > service.yml << EOF
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: ${JOB_NAME}-service
+      spec:
+        type: NodePort
+        ports:
+          - port: 80
+            name: http
+            nodePort: 30080
+            protocol: TCP
+            targetPort: 80
+          - port: 443
+            name: ssl
+            nodePort: 30443
+            protocol: TCP
+            targetPort: 443
+        selector:
+          app: ${JOB_NAME}-pod
+      EOF
+    # set ingress
+    - |
+      cat > ingress.yml << EOF
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: ${JOB_NAME}-ingress
+      spec:
+        rules:
+          - host: demo.localhost.com
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: ${JOB_NAME}-service
+                      port:
+                        number: 80
+      EOF
+    - kubectl apply -f deployment.yml
+    - kubectl apply -f service.yml
+    - kubectl apply -f ingress.yml
+    - kubectl get pods

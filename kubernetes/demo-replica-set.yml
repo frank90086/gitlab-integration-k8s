@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: k8s-demo-replica-set
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      env: dev
+    matchExpressions:
+      - {key: env, operator: In, values: [dev]}
+      - {key: env, operator: NotIn, values: [prod]}
+  template:
+    metadata:
+      labels:
+        app: k8s-demo-pod
+        env: dev
+        version: v1
+    spec:
+      containers:
+        - name: k8s-demo-container
+          image: registry.localhost.com:5000/k8s/demo-api-dev
+          ports:
+            - containerPort: 80
+            - containerPort: 443

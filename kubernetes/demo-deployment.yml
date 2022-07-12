@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-demo-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: k8s-demo-pod
+  template:
+    metadata:
+      labels:
+        app: k8s-demo-pod
+    spec:
+      containers:
+        - name: k8s-demo-container
+          image: registry.localhost.com:5000/k8s/demo-api-dev
+          ports:
+            - containerPort: 80
+            - containerPort: 443
+          livenessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 30
+            successThreshold: 1
+            failureThreshold: 3
