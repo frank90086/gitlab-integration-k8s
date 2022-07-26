@@ -26,6 +26,7 @@ brew install minikube
 
 ### Start
 > [[Official] Docker Driver](https://minikube.sigs.k8s.io/docs/drivers/docker/)
+
 > [Private Registry Troubleshooting](https://zhuanlan.zhihu.com/p/261722859)
 
 ```cmd
@@ -233,7 +234,9 @@ replicaset.apps/gitlab-runner-7f74ccdb59         1         1         1       3h1
 
 ##### Set Registry Secret
 > [[Official] Registry Document](https://minikube.sigs.k8s.io/docs/handbook/registry/)
+
 > ```minikube addons configure registry-creds```
+
 > ```minikube addons enable registry-creds```
 
 ```cmd
@@ -301,6 +304,7 @@ Do you want to enable Azure Container Registry? [y/n]: n
 
 ##### Service
 > ```minikube service <service_name>```
+
 > ```minikube service <service_name> --url```
 
 ```cmd
@@ -326,6 +330,7 @@ http://127.0.0.1:62694]
 
 ##### Rerange NodePort
 > default range 3000-32767
+
 > ```minikube start --extra-config=apiserver.ServiceNodePortRange=<number>-<number>```
 
 ##### [Tunnel](https://minikube.sigs.k8s.io/docs/handbook/accessing/#loadbalancer-access)
@@ -346,8 +351,11 @@ http://127.0.0.1:62694]
 ### [Kubectl Useful Command](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
 ##### [Get Pods](https://kubernetes.io/docs/concepts/workloads/pods/)
 > ```po | pod | pods ```
+
 > ```kubectl get po -A```
+
 > ```kubectl get pods```
+
 > ```kubectl get pods --show-labels```
 
 ```cmd
@@ -367,6 +375,7 @@ kube-system   storage-provisioner                1/1     Running   1 (27m ago)  
 
 ##### [Get Nodes](https://kubernetes.io/docs/concepts/architecture/nodes/)
 > ```no | node | nodes```
+
 > ```kubectl get nodes```
 
 ##### [Get Replication Controller](https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/)
@@ -377,10 +386,12 @@ kube-system   storage-provisioner                1/1     Running   1 (27m ago)  
 
 ##### [Get Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
 > ```deploy | deployment```
+
 > ```kubectl get deployment```
 
 ##### [Get Service](https://kubernetes.io/docs/concepts/services-networking/service/)
 > ```svc | service```
+
 > ```kubectl get service```
 
 ##### [Get Namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/)
@@ -388,10 +399,15 @@ kube-system   storage-provisioner                1/1     Running   1 (27m ago)  
 
 ##### [Debug](https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/#example-debugging-pending-pods)
 > ```kubectl describe nodes <node_name>```
+
 > ```kubectl describe rc <rc_name>```
+
 > ```kubectl describe rs <rs_name>```
+
 > ```kubectl describe deployment <deployment_name>```
+
 > ```kubectl describe pod <pod_name>```
+
 > ```kubectl get pod <pod_name> --output=yaml```
 
 ##### [Get Pod Logs](https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/#examine-pod-logs)
@@ -435,7 +451,9 @@ type: kubernetes.io/dockerconfigjson
 
 ##### Manual Expose Pod's Ports By Service
 > ```kubectl expose pod <pod_name> --type=NodePort --name=<service_name>```
+
 > ```kubectl expose pod <pod_name> --port=<pod_port> --name=<service_name>```
+
 > ```kubectl expose deploy <deploy_name> --type=NodePort --name=<service_name>```
 
 ```cmd
@@ -457,13 +475,18 @@ k8s-demo-service-manual   NodePort    10.98.46.25   <none>        80:32115/TCP,4
 
 ##### Delete Replication Controller
 > ```kubectl delete rc <replication_name> --cascade=false```
+
 > cascade option false keep pods alive
 
 ##### [Rollout](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#rolling-back-a-deployment)
 > ```kubectl set image deploy/<deploy_name> <container_name>=<image_name> --record```
+
 > ```kubectl rollout status deploy <deploy_name>```
+
 > ```kubectl rollout history deploy <deploy_name>```
+
 > ```kubectl rollout undo deploy <deploy_name>```
+
 > ```kubectl rollout undo deploy <deploy_name> --to-revision=<revision>```
 
 ```cmd
