@@ -4,8 +4,8 @@ metadata:
   name: gitlab-runner
   namespace: gitlab-runner
 rules:
-  - apiGroups: ["", "apps"]
-    resources: ["pods", "secrets", "configmaps", "deployments", "services", "ingress"]
+  - apiGroups: ["", "apps", "networking.k8s.io"]
+    resources: ["pods", "secrets", "configmaps", "deployments", "services", "ingresses"]
     verbs: ["list", "get", "watch", "create", "delete", "update", "patch"]
   - apiGroups: ["", "apps"]
     resources: ["pods/exec", "pods/attach"]
