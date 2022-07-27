@@ -328,6 +328,21 @@ http://127.0.0.1:62694]
 > default range 3000-32767
 > ```minikube start --extra-config=apiserver.ServiceNodePortRange=<number>-<number>```
 
+##### [Tunnel](https://minikube.sigs.k8s.io/docs/handbook/accessing/#loadbalancer-access)
+> ```minikube addons enable ingress```
+
+> ```minikube tunnel```
+
+```cmd
+✅  Tunnel successfully started
+
+📌  NOTE: Please do not close this terminal as this process must stay alive for the tunnel to be accessible ...
+
+❗  The service/ingress demo-api-ingress requires privileged ports to be exposed: [80 443]
+🔑  sudo permission will be asked for it.
+🏃  Starting tunnel for service demo-api-ingress.
+```
+
 ### [Kubectl Useful Command](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
 ##### [Get Pods](https://kubernetes.io/docs/concepts/workloads/pods/)
 > ```po | pod | pods ```
@@ -471,6 +486,7 @@ REVISION  CHANGE-CAUSE
 - [Gitlab CI/CD Intergration K8S](https://medium.com/@ruben.laguna/installing-a-gitlab-runner-on-kubernetes-ac386c924bc8)
 - [Use GitLab CI to run a GitLab runner and run a pipeline on Kubernetes](https://www.alibabacloud.com/help/en/container-service-for-kubernetes/latest/use-gitlab-ci-to-run-a-gitlab-runner-and-run-a-pipeline-on-kubernetes)
 - [GitLab Runner Helm Chart](https://docs.gitlab.com/runner/install/kubernetes.html)
+- [Set up Ingress on Minikube with the NGINX Ingress Controller](https://kubernetes.io/docs/tasks/access-application-cluster/ingress-minikube/)
 
 ## Troubleshooting
 - [Helm install - Tags not being applied from values.yaml](https://gitlab.com/gitlab-org/gitlab-runner/-/issues/3967#related-issues)
