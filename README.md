@@ -481,12 +481,23 @@ REVISION  CHANGE-CAUSE
 3         kubectl set image deploy/k8s-demo-deployment k8s-demo-container=registry.localhost.com:5000/k8s/demo-api-dev:latest --record=true
 ```
 
+##### Get Ingress Nginx Config
+> ```kubectl exec -it -n <namespace_name> <pod_name> cat /etc/nginx/nginx.conf```
+
+##### [Kubectl Proxy](https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster-services/#manually-constructing-apiserver-proxy-urls)
+> ```kubectl proxy --port=<port>```
+
+```cmd
+http://<localhost>/api/v1/namespaces/<namespace_name>/services/<service_name><port_name>/proxy/<path>
+```
+
 ## References
 - [Kubernetes 30天學習筆記](https://ithelp.ithome.com.tw/users/20103753/ironman/1590)
 - [Gitlab CI/CD Intergration K8S](https://medium.com/@ruben.laguna/installing-a-gitlab-runner-on-kubernetes-ac386c924bc8)
 - [Use GitLab CI to run a GitLab runner and run a pipeline on Kubernetes](https://www.alibabacloud.com/help/en/container-service-for-kubernetes/latest/use-gitlab-ci-to-run-a-gitlab-runner-and-run-a-pipeline-on-kubernetes)
 - [GitLab Runner Helm Chart](https://docs.gitlab.com/runner/install/kubernetes.html)
 - [Set up Ingress on Minikube with the NGINX Ingress Controller](https://kubernetes.io/docs/tasks/access-application-cluster/ingress-minikube/)
+- [NodePort vs LoadBalancer vs Ingress](https://www.twblogs.net/a/5ef132080b72ce4a15810cd9)
 
 ## Troubleshooting
 - [Helm install - Tags not being applied from values.yaml](https://gitlab.com/gitlab-org/gitlab-runner/-/issues/3967#related-issues)
