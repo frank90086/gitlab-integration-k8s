@@ -514,6 +514,55 @@ REVISION  CHANGE-CAUSE
 http://<localhost>/api/v1/namespaces/<namespace_name>/services/<service_name><port_name>/proxy/<path>
 ```
 
+##### Create Secret
+```cmd
+# from file
+kubectl create secret generic <secret_name> \
+--from-file=<path> \
+--from-file=<path>
+
+# from literal
+kubectl create secret generic <secret_name> \
+--from-literal=username=root \
+--from-literal=password=P@ssw0rd
+```
+
+```yml
+# binding secret used env
+# demo-pod.yml
+---
+spec:
+  containers:
+    ...
+    env:
+      - name: SECRET_USERNAME
+        valueFrom:
+          secretKeyRef:
+            name: <secret_name>
+            key: username
+      - name: SECRET_PASSWORD
+        valueFrom:
+          secretKeyRef:
+            name: <secret_name>
+            key: password
+
+# binding secret used volume
+# demo-pod.yml
+---
+spec:
+  containers:
+    ...
+    volumeMounts:
+      - name: <volume_name>
+        mountPath: <path>
+        readOnly: true
+  ...
+  volumes:
+    - name: <volume_name>
+      secret:
+        secretName: <secret_name>
+```
+
 ## References
 - [Kubernetes 30天學習筆記](https://ithelp.ithome.com.tw/users/20103753/ironman/1590)
 - [Gitlab CI/CD Intergration K8S](https://medium.com/@ruben.laguna/installing-a-gitlab-runner-on-kubernetes-ac386c924bc8)

@@ -11,7 +11,30 @@ spec:
       ports:
         - containerPort: 80
         - containerPort: 443
-  imagePullSecrets:
-    - name: regcred
+      # # for secret test
+      # env:
+      #   - name: SECRET_USERNAME
+      #     valueFrom:
+      #       secretKeyRef:
+      #         name: k8s-demo-secret
+      #         key: username
+      #   - name: SECRET_PASSWORD
+      #     valueFrom:
+      #       secretKeyRef:
+      #         name: k8s-demo-secret
+      #         key: password
+  # # for volumn mount secret
+  #     volumeMounts:
+  #       - name: secret-volume
+  #         mountPath: /var/secret
+  #         readOnly: true
+  # volumes:
+  #   - name: secret-volume
+  #     secret:
+  #       secretName: k8s-demo-secret
+  # # for image pull secret
+  # imagePullSecrets:
+  #   - name: regcred
+  # # for node selector
   # nodeSelector:
   #   location: localhost
